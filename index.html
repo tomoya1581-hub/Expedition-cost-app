@@ -970,23 +970,32 @@
                 let em = DATA_STORE.expedition_members.find(e => e.exp_id === exp.id && e.member_id === m.id);
                 let state = em ? em.state : '参加';
 
-                if (state == '欠席') {
+                if (state === '欠席') {
                     row.push('×');
                 } else {
                     const calc = calculateExpeditionCosts(exp.id);
                     let burden = 0;
-                    if (state === '参加' || state === 'レンタカー') burdern = calc.basePayPerPerson;
-                    else if (state === 'マネージャー') burden = calc.mgrPayPerPerson;
-                    else if (state === '車出し') burden = calc.driverPayPerPerson;
+                    
+                    // 各役割に応じた負担額の取得（アプリ内の他の場所で使われているプロパティ名に合わせる必要があります）
+                    if (state === '参加') {
+                        burden = calc.basePayPerPerson !== undefined ? calc.basePayPerPerson : (calc.participantPayPerPerson || 0);
+                    } else if (state === 'レンタカー') {
+                        burden = calc.rentalPayPerPerson !== undefined ? calc.rentalPayPerPerson : (calc.basePayPerPerson || 0);
+                    } else if (state === 'マネージャー') {
+                        burden = calc.mgrPayPerPerson || 0;
+                    } else if (state === '車出し') {
+                        burden = calc.driverPayPerPerson || 0;
+                    }
+
                     let isPaid = em && em.submission_status === '済';
                     if (isPaid) {
                         row.push('〇');
                     } else {
                         row.push(burden);
                     }
+                    
+                    totalBurden += burden;
                 }
-
-                totalBurden += burden;
 
                 totalAdv += DATA_STORE.costs.filter(c => c.exp_id === exp.id && c.type === m.name).reduce((s, c) => s + c.amount, 0);
             });
