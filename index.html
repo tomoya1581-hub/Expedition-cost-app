@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>遠征費管理システム</title>
+    <meta name="theme-color" content="#3498db">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="遠征費管理">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+
+    <!-- Firebase SDK (Compat v10) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+        .container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 800px;
+            box-sizing: border-box;
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+            margin-top: 0;
+            font-size: 1.4rem;
+        }
+        .view {
+            display: none;
+        }
+        .view.active {
+            display: block;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 15px;
+            margin: 5px 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button.secondary {
+            background-color: #95a5a6;
+        }
+        button.secondary:hover {
+            background-color: #7f8c8d;
+        }
+        button.danger {
+            background-color: #e74c3c;
+        }
+        button.danger:hover {
+            background-color: #c0392b;
+        }
+        button.success {
+            background-color: #27ae60;
+        }
+        button.success:hover {
+            background-color: #219653;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0 15px 0;
+            display: inline-block;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        label {
+            font-weight: bold;
+            font-size: 13px;
+            display: block;
+            margin-top: 5px;
+        }
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            margin: 15px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            white-space: nowrap;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+            font-size: 14px;
+        }
+        th {
+            background-color: #f8f9fa;
+        }
+        .info-box {
+            background: #ecf0f1;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        .info-box p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        .btn-group {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .action-btn-container {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+        }
+        .action-btn-container button {
+            width: auto;
+            padding: 6px 10px;
+            font-size: 13px;
+            margin: 0;
+        }
+        #login-container {
+            max-width: 400px;
+            margin: auto;
+            text-align: center;
+        }
+        .error-msg {
+            color: #e74c3c;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        @media (min-width: 600px) {
+            body {
+                padding: 20px;
+            }
+            .container {
+                padding: 30px;
+            }
+            button {
+                width: auto;
+                padding: 10px 15px;
+                display: inline-block;
+                margin: 5px 2px;
+            }
+            .btn-group {
+                flex-direction: row;
+                flex-wrap: wrap;
+            }
+        }
+    
+        /* ===== Smartphone / PWA enhancements ===== */
+        :root {
+            --safe-top: env(safe-area-inset-top, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+        }
+        html {
+            background: #f4f7f6;
+            -webkit-text-size-adjust: 100%;
+        }
+        body {
+            padding-top: max(10px, var(--safe-top));
+            padding-bottom: max(10px, var(--safe-bottom));
+            overscroll-behavior-y: contain;
+        }
+        button, input, select {
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            min-height: 46px;
+        }
+        .container {
+            min-height: calc(100vh - var(--safe-top) - var(--safe-bottom));
+            min-height: calc(100dvh - var(--safe-top) - var(--safe-bottom));
+        }
+    </style>
+</head>
+<body>
+
+<!-- ログイン画面 -->
+<div class="container" id="login-container">
+    <h2>会計担当者 ログイン</h2>
+    <p style="font-size: 14px; color: #666;">IDとパスワードを入力してください。</p>
+    <div id="login-error" class="error-msg"></div>
+    <label>ログインID:</label>
+    <input type="text" id="login-id" placeholder="例: kaikei" autocapitalize="none">
+    <label>パスワード:</label>
+    <input type="password" id="login-password" placeholder="********">
+    <button onclick="loginUser()" style="width: 100%; margin-top: 10px;">ログイン</button>
+</div>
+
+<!-- メインアプリ画面（初期状態は非表示） -->
+<div class="container" id="app-container" style="display: none;">
+
+    <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
+        <button onclick="logoutUser()" class="secondary" style="padding: 6px 12px; font-size: 12px; width: auto;">ログアウト</button>
+    </div>
+
+    <!-- 1. メインメニュー画面 -->
+    <div id="main-view" class="view active" style="text-align: center;">
+        <h1 style="margin-bottom: 25px;">遠征費管理システム</h1>
+        <div style="margin-bottom: 15px;">
+            <button onclick="showView('master-member-view')" class="secondary" style="width: 100%; max-width: 280px; padding: 14px; font-size: 16px;">部員登録</button>
+        </div>
+        <div style="margin-bottom: 15px;">
+            <button onclick="showView('add-expedition-view')" style="width: 100%; max-width: 280px; padding: 14px; font-size: 16px;">新規遠征追加</button>
+        </div>
+        <div style="margin-bottom: 15px;">
+            <button onclick="openExpeditionSelection()" class="secondary" style="width: 100%; max-width: 280px; padding: 14px; font-size: 16px;">遠征詳細・編集・精算</button>
+        </div>
+        <div style="margin-bottom: 25px;">
+            <button onclick="exportUnpaidCsv()" class="success" style="width: 100%; max-width: 280px; padding: 14px; font-size: 16px;">部員別負担額Excel(CSV)出力</button>
+        </div>
+        <div style="border-top: 1px solid #eee; padding-top: 15px;">
+            <button onclick="resetAllData()" class="danger" style="padding: 8px 12px; font-size: 12px; width: auto;">クラウドデータをリセット（初期化）</button>
+        </div>
+    </div>
+
+    <!-- 1.5. 部員登録画面 -->
+    <div id="master-member-view" class="view">
+        <h2>部員登録</h2>
+        <label>部員名 (10文字以内):</label>
+        <input type="text" id="master-member-name" maxlength="10">
+        <button onclick="addMasterMember()">部員を追加する</button>
+
+        <h3>登録済み部員一覧</h3>
+        <div class="table-responsive">
+            <table id="master-member-table">
+                <thead>
+                    <tr>
+                        <th>名前</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="master-member-list-body"></tbody>
+            </table>
+        </div>
+        <div style="text-align: right; margin-top: 15px;">
+            <button class="secondary" onclick="showView('main-view')">トップへ戻る</button>
+        </div>
+    </div>
+
+    <!-- 2. 新規遠征追加画面 -->
+    <div id="add-expedition-view" class="view">
+        <h2>新規遠征追加</h2>
+        <label>遠征地名 (10文字以内):</label>
+        <input type="text" id="exp-place" maxlength="10">
+        
+        <label>日程 (YYYY-MM-DD):</label>
+        <input type="date" id="exp-date">
+
+        <label>マネージャー負担割合（例: 1.0で全額、0.5で半額）:</label>
+        <input type="number" id="exp-mgr-rate" step="0.1" value="0.3" min="0" max="2">
+
+        <label>車出し負担割合（例: 0で免除、1.0で通常参加と同等）:</label>
+        <input type="number" id="exp-driver-rate" step="0.1" value="0.0" min="0" max="2">
+
+        <label>端数処理の単位（指定未満を繰り上げ）:</label>
+        <select id="exp-ceil-unit">
+            <option value="1">1円未満（切捨てなし）</option>
+            <option value="10" selected>10円未満（初期値）</option>
+            <option value="100">100円未満</option>
+            <option value="1000">1000円未満</option>
+        </select>
+        
+        <div style="text-align: right; margin-top: 15px;">
+            <button class="secondary" onclick="showView('main-view')">戻る</button>
+            <button onclick="inputNewExpedition()">登録</button>
+        </div>
+    </div>
+
+    <!-- 3. 遠征選択画面 -->
+    <div id="select-expedition-view" class="view">
+        <h2>遠征選択</h2>
+        <div style="margin-bottom: 10px; display: flex; gap: 10px;">
+            <button class="secondary" onclick="toggleSelectAllExpeditions(true)" style="width: auto; padding: 6px 12px; font-size: 13px;">すべて選択</button>
+            <button class="secondary" onclick="toggleSelectAllExpeditions(false)" style="width: auto; padding: 6px 12px; font-size: 13px;">選択解除</button>
+            <button class="danger" onclick="deleteSelectedExpeditions()" style="width: auto; padding: 6px 12px; font-size: 13px; margin-left: auto;">選択した遠征を削除</button>
+        </div>
+        <div class="table-responsive">
+            <table id="expedition-table">
+                <thead>
+                    <tr>
+                        <th style="width: 40px;">選択</th>
+                        <th>遠征地</th>
+                        <th>日程</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="expedition-list-body"></tbody>
+            </table>
+        </div>
+        <div style="text-align: right; margin-top: 15px;">
+            <button class="secondary" onclick="showView('main-view')">戻る</button>
+        </div>
+    </div>
+
+    <!-- 4. 遠征詳細・編集画面 -->
+    <div id="edit-view" class="view">
+        <h2 id="edit-title">遠征詳細</h2>
+        
+        <div class="btn-group">
+            <button onclick="openModal('modal-add-advance')">立替費入力</button>
+            <button onclick="openModal('modal-manage-advance')" class="secondary">立替費の確認・修正</button>
+            <button onclick="openModal('modal-edit-rate')" class="secondary">負担割合・端数的変更</button>
+        </div>
+
+        <div class="table-responsive">
+            <table id="member-cost-table">
+                <thead>
+                    <tr>
+                        <th>氏名</th>
+                        <th>状態 (選択可能)</th>
+                        <th>金額・内訳</th>
+                        <th>支払いステータス</th>
+                    </tr>
+                </thead>
+                <tbody id="member-cost-list-body"></tbody>
+            </table>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
+            <button onclick="openSumPage()">精算画面</button>
+            <button class="secondary" onclick="showView('main-view')">トップへ戻る</button>
+        </div>
+    </div>
+
+    <!-- 5. 精算画面 -->
+    <div id="sum-view" class="view">
+        <h2>精算・合計金額確認</h2>
+        <div class="info-box" id="sum-info-box"></div>
+
+        <div class="table-responsive">
+            <table id="sum-table">
+                <thead>
+                    <tr>
+                        <th>氏名</th>
+                        <th>状態</th>
+                        <th>精算内容</th>
+                    </tr>
+                </thead>
+                <tbody id="sum-list-body"></tbody>
+            </table>
+        </div>
+
+        <div style="text-align: right; margin-top: 15px;">
+            <button class="secondary" onclick="showView('edit-view')">戻る</button>
+        </div>
+    </div>
+
+</div>
+
+<!-- モーダル各種 -->
+<div id="modal-add-advance" class="view" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:none; justify-content:center; align-items:center; padding: 15px; box-sizing: border-box;">
+    <div style="background:white; padding:20px; border-radius:6px; width:100%; max-width:320px; box-sizing: border-box;">
+        <h3>立替金入力</h3>
+        <label>対象者 (車出し / レンタカー):</label>
+        <select id="advance-driver-select"></select>
+        
+        <label>立替金額 (円):</label>
+        <input type="number" id="advance-amount">
+        <div style="text-align:right; display: flex; gap: 5px; justify-content: flex-end;">
+            <button class="secondary" onclick="closeModal('modal-add-advance')" style="width: auto;">キャンセル</button>
+            <button onclick="addAdvanceAction()" style="width: auto;">確定</button>
+        </div>
+    </div>
+</div>
+
+<div id="modal-manage-advance" class="view" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:none; justify-content:center; align-items:center; padding: 15px; box-sizing: border-box;">
+    <div style="background:white; padding:20px; border-radius:6px; width:100%; max-width:450px; max-height: 80vh; overflow-y: auto; box-sizing: border-box;">
+        <h3>立替費の確認・修正</h3>
+        <div class="table-responsive">
+            <table style="width:100%; border-collapse: collapse; margin-bottom:15px;">
+                <thead>
+                    <tr>
+                        <th>対象者</th>
+                        <th>金額</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="modal-advance-list-body"></tbody>
+            </table>
+        </div>
+        <div style="text-align:right;">
+            <button class="secondary" onclick="closeModal('modal-manage-advance')" style="width: auto;">閉じる</button>
+        </div>
+    </div>
+</div>
+
+<div id="modal-edit-rate" class="view" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:none; justify-content:center; align-items:center; padding: 15px; box-sizing: border-box;">
+    <div style="background:white; padding:20px; border-radius:6px; width:100%; max-width:300px; box-sizing: border-box;">
+        <h3>負担割合・端数の変更</h3>
+        <label>マネージャー割合:</label>
+        <input type="number" id="modal-mgr-rate-input" step="0.1" min="0" max="2">
+        
+        <label style="margin-top:10px; display:block;">車出し割合:</label>
+        <input type="number" id="modal-driver-rate-input" step="0.1" min="0" max="2">
+
+        <label style="margin-top:10px; display:block;">端数処理単位:</label>
+        <select id="modal-ceil-unit-input">
+            <option value="1">1円未満</option>
+            <option value="10">10円未満</option>
+            <option value="100">100円未満</option>
+            <option value="1000">1000円未満</option>
+        </select>
+
+        <div style="text-align:right; margin-top: 15px; display: flex; gap: 5px; justify-content: flex-end;">
+            <button class="secondary" onclick="closeModal('modal-edit-rate')" style="width: auto;">キャンセル</button>
+            <button onclick="saveRates()" style="width: auto;">保存</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ========= Firebase 設定 =========
+    const firebaseConfig = {
+        apiKey: "AIzaSyDrjj9wEPvRB-ssEJmY2OtxV_gyRtE9IdY",
+        authDomain: "expedition-cost-app.firebaseapp.com",
+        projectId: "expedition-cost-app",
+        storageBucket: "expedition-cost-app.firebasestorage.app",
+        messagingSenderId: "142619442252",
+        appId: "1:142619442252:web:8fc6750443b9da642088e9"
+    };
+
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+
+    let DATA_STORE = {
+        master_members: [],
+        next_master_id: 1,
+        next_expedition_id: 1,
+        expeditions: [],
+        expedition_members: [],
+        costs: []
+    };
+
+    let currentExpeditionId = null;
+    let unsubscribeFirestore = null;
+    const DOC_ID = "main_data";
+
+    // 認証状態の監視
+    auth.onAuthStateChanged((user) => {
+        if (user) {
+            document.getElementById('login-container').style.display = 'none';
+            document.getElementById('app-container').style.display = 'block';
+            initFirestoreSync();
+        } else {
+            if (unsubscribeFirestore) unsubscribeFirestore();
+            document.getElementById('app-container').style.display = 'none';
+            document.getElementById('login-container').style.display = 'block';
+        }
+    });
+
+    // ログイン処理（入力されたIDをメールアドレス形式に変換して認証）
+    async function loginUser() {
+        const inputId = document.getElementById('login-id').value.trim();
+        const password = document.getElementById('login-password').value;
+        const errorDiv = document.getElementById('login-error');
+        errorDiv.innerText = '';
+
+        if (!inputId || !password) {
+            errorDiv.innerText = 'IDとパスワードを入力してください。';
+            return;
+        }
+
+        // 内部的にメールアドレスの形（ 例: kaikei@expedition.local ）に変換する
+        const dummyEmail = `${inputId}@expedition.local`;
+
+        try {
+            await auth.signInWithEmailAndPassword(dummyEmail, password);
+        } catch (error) {
+            console.error(error);
+            errorDiv.innerText = 'ログインに失敗しました。IDまたはパスワードを確認してください。';
+        }
+    }
+
+    // ログアウト処理
+    async function logoutUser() {
+        try {
+            await auth.signOut();
+            showView('main-view');
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    // データのリアルタイム同期
+    function initFirestoreSync() {
+        unsubscribeFirestore = db.collection("expedition_system").doc(DOC_ID).onSnapshot((doc) => {
+            if (doc.exists) {
+                DATA_STORE = doc.data();
+            } else {
+                saveData();
+            }
+            refreshCurrentView();
+        }, (error) => {
+            console.error("データ同期エラー: ", error);
+        });
+    }
+
+    async function saveData() {
+        try {
+            await db.collection("expedition_system").doc(DOC_ID).set(DATA_STORE);
+        } catch (e) {
+            console.error("データの保存に失敗しました", e);
+        }
+    }
+
+    async function resetAllData() {
+        if(confirm('クラウド上のすべてのデータが消去されます。よろしいですか？')) {
+            DATA_STORE = {
+                master_members: [],
+                next_master_id: 1,
+                next_expedition_id: 1,
+                expeditions: [],
+                expedition_members: [],
+                costs: []
+            };
+            await saveData();
+            alert('データをリセットしました。');
+            showView('main-view');
+        }
+    }
+
+    function showView(viewId) {
+        document.querySelectorAll('.view').forEach(v => {
+            if(!v.id.startsWith('modal-')) v.classList.remove('active');
+        });
+        document.getElementById(viewId).classList.add('active');
+        refreshCurrentView();
+    }
+
+    function refreshCurrentView() {
+        if (document.getElementById('master-member-view').classList.contains('active')) {
+            refreshMasterMemberList();
+        } else if (document.getElementById('select-expedition-view').classList.contains('active')) {
+            refreshExpeditionSelectionList();
+        } else if (document.getElementById('edit-view').classList.contains('active') && currentExpeditionId !== null) {
+            refreshEditList();
+        }
+    }
+
+    function openModal(modalId) {
+        if(modalId === 'modal-add-advance') {
+            const select = document.getElementById('advance-driver-select');
+            select.innerHTML = '';
+            const validMembers = DATA_STORE.master_members.filter(m => {
+                const em = DATA_STORE.expedition_members.find(e => e.exp_id === currentExpeditionId && e.member_id === m.id);
+                const state = em ? em.state : '参加';
+                return state === '車出し' || state === 'レンタカー';
+            });
+            validMembers.forEach(m => {
+                const em = DATA_STORE.expedition_members.find(e => e.exp_id === currentExpeditionId && e.member_id === m.id);
+                const opt = document.createElement('option');
+                opt.value = m.name;
+                opt.text = `${m.name} (${em ? em.state : '参加'})`;
+                select.appendChild(opt);
+            });
+        } else if(modalId === 'modal-manage-advance') {
+            refreshManageAdvanceList();
+        } else if(modalId === 'modal-edit-rate') {
+            const exp = DATA_STORE.expeditions.find(e => e.id === currentExpeditionId);
+            document.getElementById('modal-mgr-rate-input').value = exp ? exp.manager_rate : 1.0;
+            document.getElementById('modal-driver-rate-input').value = exp ? (exp.driver_rate ?? 0.0) : 0.0;
+            document.getElementById('modal-ceil-unit-input').value = exp ? (exp.ceil_unit ?? 10) : 10;
+        }
+        document.getElementById(modalId).style.display = 'flex';
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).style.display = 'none';
+        refreshEditList();
+    }
+
+    function getTodayStr() {
+        return new Date().toISOString().split('T')[0];
+    }
+
+    function ceilToUnit(num, unit) {
+        if (!unit || unit <= 1) return Math.ceil(num);
+        return Math.ceil(num / unit) * unit;
+    }
+
+    async function addMasterMember() {
+        const nameInput = document.getElementById('master-member-name');
+        const name = nameInput.value.trim();
+        if(name.length > 0 && name.length <= 10) {
+            DATA_STORE.master_members.push({ id: DATA_STORE.next_master_id++, name: name });
+            nameInput.value = '';
+            await saveData();
+            refreshMasterMemberList();
+        } else {
+            alert('部員名は1〜10文字以内で入力してください。');
+        }
+    }
+
+    function refreshMasterMemberList() {
+        const tbody = document.getElementById('master-member-list-body');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        DATA_STORE.master_members.forEach(m => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${m.name}</td>
+                <td><button class="danger" onclick="deleteMasterMember(${m.id})" style="padding:6px 10px; font-size:13px; width:auto;">削除</button></td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    async function deleteMasterMember(id) {
+        DATA_STORE.master_members = DATA_STORE.master_members.filter(m => m.id !== id);
+        await saveData();
+        refreshMasterMemberList();
+    }
+
+    async function inputNewExpedition() {
+        const place = document.getElementById('exp-place').value.trim();
+        const dateStr = document.getElementById('exp-date').value;
+        const mgrRate = parseFloat(document.getElementById('exp-mgr-rate').value);
+        const driverRate = parseFloat(document.getElementById('exp-driver-rate').value);
+        const ceilUnit = parseInt(document.getElementById('exp-ceil-unit').value, 10);
+
+        if (place.length > 0 && place.length <= 10 && dateStr) {
+            const exp_id = DATA_STORE.next_expedition_id++;
+            DATA_STORE.expeditions.push({
+                id: exp_id,
+                place: place,
+                date: dateStr,
+                manager_rate: isNaN(mgrRate) ? 1.0 : mgrRate,
+                driver_rate: isNaN(driverRate) ? 0.0 : driverRate,
+                ceil_unit: isNaN(ceilUnit) ? 10 : ceilUnit
+            });
+            document.getElementById('exp-place').value = '';
+            document.getElementById('exp-date').value = '';
+            await saveData();
+            showView('main-view');
+            alert('新しい遠征を追加しました。');
+        } else {
+            alert('地名（10文字以内）と日程を正しく入力してください。');
+        }
+    }
+
+    function openExpeditionSelection() {
+        if (DATA_STORE.expeditions.length === 0) {
+            alert('登録されている遠征がありません。');
+            return;
+        }
+        refreshExpeditionSelectionList();
+        showView('select-expedition-view');
+    }
+
+    function refreshExpeditionSelectionList() {
+        const tbody = document.getElementById('expedition-list-body');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        const sorted = [...DATA_STORE.expeditions].sort((a, b) => a.date.localeCompare(b.date));
+        sorted.forEach(exp => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><input type="checkbox" class="exp-checkbox" value="${exp.id}" style="width:auto; margin:0; cursor:pointer;"></td>
+                <td>${exp.place}</td>
+                <td>${exp.date}</td>
+                <td>
+                    <div class="action-btn-container">
+                        <button onclick="selectExpedition(${exp.id})">選択</button>
+                        <button class="danger" onclick="deleteExpedition(${exp.id})">削除</button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function toggleSelectAllExpeditions(select) {
+        document.querySelectorAll('.exp-checkbox').forEach(cb => cb.checked = select);
+    }
+
+    async function deleteSelectedExpeditions() {
+        const checkboxes = document.querySelectorAll('.exp-checkbox:checked');
+        if (checkboxes.length === 0) {
+            alert('削除する遠征が選択されていません。');
+            return;
+        }
+
+        if (confirm(`選択した ${checkboxes.length} 件の遠征を削除しますか？`)) {
+            const idsToDelete = Array.from(checkboxes).map(cb => parseInt(cb.value, 10));
+            DATA_STORE.expeditions = DATA_STORE.expeditions.filter(e => !idsToDelete.includes(e.id));
+            DATA_STORE.expedition_members = DATA_STORE.expedition_members.filter(e => !idsToDelete.includes(e.exp_id));
+            DATA_STORE.costs = DATA_STORE.costs.filter(c => !idsToDelete.includes(c.exp_id));
+            await saveData();
+            openExpeditionSelection();
+        }
+    }
+
+    async function deleteExpedition(expId) {
+        const exp = DATA_STORE.expeditions.find(e => e.id === expId);
+        if(confirm(`遠征「${exp.place} (${exp.date})」を削除しますか？`)) {
+            DATA_STORE.expeditions = DATA_STORE.expeditions.filter(e => e.id !== expId);
+            DATA_STORE.expedition_members = DATA_STORE.expedition_members.filter(e => e.exp_id !== expId);
+            DATA_STORE.costs = DATA_STORE.costs.filter(c => c.exp_id !== expId);
+            await saveData();
+            openExpeditionSelection();
+        }
+    }
+
+    function selectExpedition(expId) {
+        currentExpeditionId = expId;
+        const exp = DATA_STORE.expeditions.find(e => e.id === expId);
+        document.getElementById('edit-title').innerText = `遠征詳細 - ${exp.place} (${exp.date})`;
+        showView('edit-view');
+        refreshEditList();
+    }
+
+    function calculateExpeditionCosts(expId) {
+        const expCosts = DATA_STORE.costs.filter(c => c.exp_id === expId);
+        const expObj = DATA_STORE.expeditions.find(e => e.id === expId);
+        
+        const mgrRate = expObj ? expObj.manager_rate : 1.0;
+        const driverRate = expObj ? (expObj.driver_rate ?? 0.0) : 0.0;
+        const ceilUnit = expObj ? (expObj.ceil_unit ?? 10) : 10;
+        const totalAdvance = expCosts.reduce((sum, c) => sum + c.amount, 0);
+
+        let numParticipants = 0, numManagers = 0, numDrivers = 0;
+        DATA_STORE.master_members.forEach(m => {
+            let em = DATA_STORE.expedition_members.find(e => e.exp_id === expId && e.member_id === m.id);
+            let state = em ? em.state : '参加';
+            if (state === '参加' || state === 'レンタカー') numParticipants++;
+            if (state === 'マネージャー') numManagers++;
+            if (state === '車出し') numDrivers++;
+        });
+
+        const totalWeight = numParticipants + (numManagers * mgrRate) + (numDrivers * driverRate);
+        let basePayPerPerson = totalWeight > 0 ? ceilToUnit(totalAdvance / totalWeight, ceilUnit) : 0;
+
+        return {
+            totalAdvance,
+            ceilUnit,
+            basePayPerPerson,
+            mgrPayPerPerson: ceilToUnit(basePayPerPerson * mgrRate, ceilUnit),
+            driverPayPerPerson: ceilToUnit(basePayPerPerson * driverRate, ceilUnit)
+        };
+    }
+
+    function refreshEditList() {
+        const tbody = document.getElementById('member-cost-list-body');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        if (DATA_STORE.master_members.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="color: #e74c3c;">部員が登録されていません。</td></tr>`;
+            return;
+        }
+
+        const expCosts = DATA_STORE.costs.filter(c => c.exp_id === currentExpeditionId);
+        const calc = calculateExpeditionCosts(currentExpeditionId);
+
+        DATA_STORE.master_members.forEach(m => {
+            let em = DATA_STORE.expedition_members.find(e => e.exp_id === currentExpeditionId && e.member_id === m.id);
+            let currentState = em ? em.state : '参加';
+            let currentStatus = em ? em.submission_status : '未';
+            let currentDate = em ? em.submission_date : '';
+
+            const tr = document.createElement('tr');
+            let stateSelectHtml = `
+                <select onchange="updateMemberState(${m.id}, this.value)" style="margin:0; padding:6px;">
+                    <option value="参加" ${currentState === '参加' ? 'selected' : ''}>参加</option>
+                    <option value="車出し" ${currentState === '車出し' ? 'selected' : ''}>車出し</option>
+                    <option value="レンタカー" ${currentState === 'レンタカー' ? 'selected' : ''}>レンタカー</option>
+                    <option value="マネージャー" ${currentState === 'マネージャー' ? 'selected' : ''}>マネージャー</option>
+                    <option value="欠席" ${currentState === '欠席' ? 'selected' : ''}>欠席</option>
+                </select>
+            `;
+
+            let costText = '';
+            let statusText = '';
+            if (currentState === '車出し') {
+                const totalAmount = expCosts.filter(c => c.type === m.name).reduce((sum, c) => sum + c.amount, 0);
+                costText = calc.driverPayPerPerson > 0 ? `立替:${totalAmount}円 / 支払:${calc.driverPayPerPerson}円` : `立替: ${totalAmount}円`;
+                statusText = `<button class="secondary" style="padding:6px; width:auto;" onclick="toggleStatus(${m.id})">${currentStatus}</button>`;
+            } else if (currentState === 'レンタカー') {
+                const totalAmount = expCosts.filter(c => c.type === m.name).reduce((sum, c) => sum + c.amount, 0);
+                costText = `立替:${totalAmount}円 / 支払:${calc.basePayPerPerson}円`;
+                statusText = `<button class="secondary" style="padding:6px; width:auto;" onclick="toggleStatus(${m.id})">${currentStatus}</button>`;
+            } else if (currentState === '参加') {
+                costText = `負担: ${calc.basePayPerPerson}円`;
+                statusText = `<button class="secondary" style="padding:6px; width:auto;" onclick="toggleStatus(${m.id})">${currentStatus}</button>`;
+            } else if (currentState === 'マネージャー') {
+                costText = `負担: ${calc.mgrPayPerPerson}円`;
+                statusText = `<button class="secondary" style="padding:6px; width:auto;" onclick="toggleStatus(${m.id})">${currentStatus}</button>`;
+            } else {
+                costText = `-`;
+                statusText = `不参加`;
+            }
+
+            tr.innerHTML = `<td>${m.name}</td><td>${stateSelectHtml}</td><td>${costText}</td><td>${statusText}</td>`;
+            tbody.appendChild(tr);
+        });
+    }
+
+    async function updateMemberState(memberId, newState) {
+        let em = DATA_STORE.expedition_members.find(e => e.exp_id === currentExpeditionId && e.member_id === memberId);
+        if(em) { em.state = newState; }
+        else {
+            DATA_STORE.expedition_members.push({ exp_id: currentExpeditionId, member_id: memberId, state: newState, submission_status: '未', submission_date: '' });
+        }
+        await saveData();
+        refreshEditList();
+    }
+
+    async function addAdvanceAction() {
+        const memberName = document.getElementById('advance-driver-select').value;
+        const amountVal = parseInt(document.getElementById('advance-amount').value, 10);
+        if(!memberName || isNaN(amountVal) || amountVal <= 0) {
+            alert('正しい値を入力してください。');
+            return;
+        }
+        DATA_STORE.costs.push({ exp_id: currentExpeditionId, type: memberName, amount: amountVal, status: '未', date: getTodayStr() });
+        document.getElementById('advance-amount').value = '';
+        closeModal('modal-add-advance');
+        await saveData();
+        refreshEditList();
+    }
+
+    function refreshManageAdvanceList() {
+        const tbody = document.getElementById('modal-advance-list-body');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        const costsWithIndex = [];
+        DATA_STORE.costs.forEach((c, idx) => { if(c.exp_id === currentExpeditionId) costsWithIndex.push({ cost: c, originalIndex: idx }); });
+
+        if (costsWithIndex.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="3">立替費はありません。</td></tr>`;
+            return;
+        }
+
+        costsWithIndex.forEach(item => {
+            const c = item.cost;
+            const idx = item.originalIndex;
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${c.type}</td><td><input type="number" id="cost-input-${idx}" value="${c.amount}" style="margin:0; padding:6px;"></td><td><button onclick="updateCostAmount(${idx})">更新</button> <button class="danger" onclick="deleteCostItem(${idx})">削除</button></td>`;
+            tbody.appendChild(tr);
+        });
+    }
+
+    async function updateCostAmount(idx) {
+        const val = parseInt(document.getElementById(`cost-input-${idx}`).value, 10);
+        if(isNaN(val) || val < 0) return alert('正しい金額を入力してください。');
+        DATA_STORE.costs[idx].amount = val;
+        await saveData();
+        alert('更新しました。');
+        refreshManageAdvanceList();
+    }
+
+    async function deleteCostItem(idx) {
+        if(confirm('削除しますか？')) {
+            DATA_STORE.costs.splice(idx, 1);
+            await saveData();
+            refreshManageAdvanceList();
+        }
+    }
+
+    async function saveRates() {
+        const mgrRate = parseFloat(document.getElementById('modal-mgr-rate-input').value);
+        const driverRate = parseFloat(document.getElementById('modal-driver-rate-input').value);
+        const ceilUnit = parseInt(document.getElementById('modal-ceil-unit-input').value, 10);
+        const exp = DATA_STORE.expeditions.find(e => e.id === currentExpeditionId);
+        if(exp) {
+            exp.manager_rate = mgrRate;
+            exp.driver_rate = driverRate;
+            exp.ceil_unit = ceilUnit;
+            closeModal('modal-edit-rate');
+            await saveData();
+            refreshEditList();
+        }
+    }
+
+    async function toggleStatus(memberId) {
+        let em = DATA_STORE.expedition_members.find(e => e.exp_id === currentExpeditionId && e.member_id === memberId);
+        const today = getTodayStr();
+        if(!em) {
+            DATA_STORE.expedition_members.push({ exp_id: currentExpeditionId, member_id: memberId, state: '参加', submission_status: '済', submission_date: today });
+        } else {
+            if(em.state === '欠席') return;
+            em.submission_status = em.submission_status === '済' ? '未' : '済';
+            em.submission_date = em.submission_status === '済' ? today : '';
+        }
+        await saveData();
+        refreshEditList();
+    }
+
+    function openSumPage() {
+        const calc = calculateExpeditionCosts(currentExpeditionId);
+        const expCosts = DATA_STORE.costs.filter(c => c.exp_id === currentExpeditionId);
+        const expObj = DATA_STORE.expeditions.find(e => e.id === currentExpeditionId);
+
+        document.getElementById('sum-info-box').innerHTML = `
+            <p><strong>総立替:</strong> ${calc.totalAdvance.toLocaleString()}円</p>
+            <p><strong>通常負担:</strong> ${calc.basePayPerPerson.toLocaleString()}円</p>
+        `;
+
+        const tbody = document.getElementById('sum-list-body');
+        tbody.innerHTML = '';
+        DATA_STORE.master_members.forEach(m => {
+            let em = DATA_STORE.expedition_members.find(e => e.exp_id === currentExpeditionId && e.member_id === m.id);
+            let state = em ? em.state : '参加';
+            if (state === '欠席') return;
+
+            let text = '';
+            if (state === '車出し') {
+                const adv = expCosts.filter(c => c.type === m.name).reduce((sum, c) => sum + c.amount, 0);
+                const net = adv - calc.driverPayPerPerson;
+                text = `立替:${adv}円 / ${net >= 0 ? '受取:' + net : '追加:' + Math.abs(net)}円`;
+            } else if (state === 'レンタカー') {
+                const adv = expCosts.filter(c => c.type === m.name).reduce((sum, c) => sum + c.amount, 0);
+                const diff = calc.basePayPerPerson - adv;
+                text = `立替:${adv}円 / ${diff >= 0 ? '追加:' + diff : '受取:' + Math.abs(diff)}円`;
+            } else if (state === '参加') {
+                text = `負担額: ${calc.basePayPerPerson}円`;
+            } else if (state === 'マネージャー') {
+                text = `負担額: ${calc.mgrPayPerPerson}円`;
+            }
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${m.name}</td><td>${state}</td><td>${text}</td>`;
+            tbody.appendChild(tr);
+        });
+        showView('sum-view');
+    }
+
+    function exportUnpaidCsv() {
+        if (DATA_STORE.master_members.length === 0 || DATA_STORE.expeditions.length === 0) {
+            alert('データが不足しています。');
+            return;
+        }
+        const expeditions = [...DATA_STORE.expeditions].sort((a, b) => a.date.localeCompare(b.date));
+        let csvContent = "\uFEFF" + ["部員名", ...expeditions.map(e => e.place), "合計負担", "立替合計", "差額"].map(h => `"${h}"`).join(",") + "\n";
+
+        DATA_STORE.master_members.forEach(m => {
+            let row = [m.name], totalBurden = 0, totalAdv = 0;
+            expeditions.forEach(exp => {
+                let em = DATA_STORE.expedition_members.find(e => e.exp_id === exp.id && e.member_id === m.id);
+                let state = em ? em.state : '参加';
+                let burden = 0;
+                if (state !== '欠席' && (!em || em.submission_status !== '済')) {
+                    const calc = calculateExpeditionCosts(exp.id);
+                    if (state === '参加' || state === 'レンタカー') burden = calc.basePayPerPerson;
+                    else if (state === 'マネージャー') burden = calc.mgrPayPerPerson;
+                    else if (state === '車出し') burden = calc.driverPayPerPerson;
+                }
+                row.push(burden);
+                totalBurden += burden;
+                totalAdv += DATA_STORE.costs.filter(c => c.exp_id === exp.id && c.type === m.name).reduce((s, c) => s + c.amount, 0);
+            });
+            row.push(totalBurden, totalAdv, totalBurden - totalAdv);
+            csvContent += row.map((v, i) => i === 0 ? `"${v}"` : v).join(",") + "\n";
+        });
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `遠征費_${getTodayStr()}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+</script>
+
+</body>
+</html>
