@@ -969,15 +969,25 @@
             expeditions.forEach(exp => {
                 let em = DATA_STORE.expedition_members.find(e => e.exp_id === exp.id && e.member_id === m.id);
                 let state = em ? em.state : '参加';
-                let burden = 0;
-                if (state !== '欠席' && (!em || em.submission_status !== '済')) {
-                    const calc = calculateExpeditionCosts(exp.id);
-                    if (state === '参加' || state === 'レンタカー') burden = calc.basePayPerPerson;
-                    else if (state === 'マネージャー') burden = calc.mgrPayPerPerson;
-                    else if (state === '車出し') burden = calc.driverPayPerPerson;
+
+                if (state == '欠席') {
+                    row.push('×');
+                } else {
+                    let isPaid = em && em.submission_status === '済';
+                    if (isPaid) {
+                        row.push('〇');
+                    } else {
+                        const calc = calculateExpeditionCosts(exp.id);
+                        let burden = 0;
+                        if (state === '参加' || state === 'レンタカー') burdern = calc.basePayPerPerson;
+                        else if (state === 'マネージャー') burden = calc.mgrPayPerPerson;
+                        else if (state === '車出し') burden = calc.driverPayPerPerson;
+
+                        row.push(burden);
+                        totalBurden += burden;
+                    }
                 }
-                row.push(burden);
-                totalBurden += burden;
+
                 totalAdv += DATA_STORE.costs.filter(c => c.exp_id === exp.id && c.type === m.name).reduce((s, c) => s + c.amount, 0);
             });
             row.push(totalBurden, totalAdv, totalBurden - totalAdv);
